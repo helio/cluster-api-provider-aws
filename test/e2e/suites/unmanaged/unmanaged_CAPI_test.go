@@ -73,9 +73,9 @@ var _ = ginkgo.Context("[unmanaged] [Cluster API Framework]", func() {
 			Expect(shared.AcquireResources(requiredResources, config.GinkgoConfig.ParallelNode, flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
 		})
 
-		capi_e2e.MachinePoolSpec(ctx, func() capi_e2e.MachinePoolInput {
-			return capi_e2e.MachinePoolInput{
-				E2EConfig:             e2eCtx.E2EConfig,
+		MachinePoolSpec(ctx, func() MachinePoolInput {
+			return MachinePoolInput{
+				E2ECtx:                e2eCtx,
 				ClusterctlConfigPath:  e2eCtx.Environment.ClusterctlConfigPath,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ArtifactFolder:        e2eCtx.Settings.ArtifactFolder,
