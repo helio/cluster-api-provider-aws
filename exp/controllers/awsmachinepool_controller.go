@@ -250,6 +250,19 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		return ctrl.Result{}, nil
 	}
 
+	if scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+		// Set MachinePool replicas to the ASG DesiredCapacity
+		if *machinePoolScope.MachinePool.Spec.Replicas != *asg.DesiredCapacity {
+			machinePoolScope.Info("Setting MachinePool replicas to ASG DesiredCapacity",
+				"local", machinePoolScope.MachinePool.Spec.Replicas,
+				"external", asg.DesiredCapacity)
+			machinePoolScope.MachinePool.Spec.Replicas = asg.DesiredCapacity
+			if err := machinePoolScope.PatchHelper.Patch(ctx, machinePoolScope.MachinePool); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	if err := r.updatePool(machinePoolScope, clusterScope, asg); err != nil {
 		machinePoolScope.Error(err, "error updating AWSMachinePool")
 		return ctrl.Result{}, err
@@ -510,12 +523,14 @@ func (r *AWSMachinePoolReconciler) reconcileTags(machinePoolScope *scope.Machine
 
 // asgNeedsUpdates compares incoming AWSMachinePool and compares against existing ASG.
 func asgNeedsUpdates(machinePoolScope *scope.MachinePoolScope, existingASG *expinfrav1.AutoScalingGroup) bool {
-	if machinePoolScope.MachinePool.Spec.Replicas != nil {
-		if existingASG.DesiredCapacity == nil || *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+	if !scope.ReplicasExternallyManaged(machinePoolScope.MachinePool) {
+		if machinePoolScope.MachinePool.Spec.Replicas != nil {
+			if existingASG.DesiredCapacity == nil || *machinePoolScope.MachinePool.Spec.Replicas != *existingASG.DesiredCapacity {
+				return true
+			}
+		} else if existingASG.DesiredCapacity != nil {
 			return true
 		}
-	} else if existingASG.DesiredCapacity != nil {
-		return true
 	}
 
 	if machinePoolScope.AWSMachinePool.Spec.MaxSize != existingASG.MaxSize {
