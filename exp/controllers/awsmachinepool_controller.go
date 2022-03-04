@@ -257,7 +257,7 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 				"local", machinePoolScope.MachinePool.Spec.Replicas,
 				"external", asg.DesiredCapacity)
 			machinePoolScope.MachinePool.Spec.Replicas = asg.DesiredCapacity
-			if err := machinePoolScope.PatchHelper.Patch(ctx, machinePoolScope.MachinePool); err != nil {
+			if err := machinePoolScope.MachinePoolPatchHelper.Patch(ctx, machinePoolScope.MachinePool); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
